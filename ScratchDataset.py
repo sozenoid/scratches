@@ -92,6 +92,7 @@ class ScratchDataset(Dataset):
         y1_resized = int(y1_rel*current_img_size[0])
 
 
+
         return (x0_resized, y0_resized, x1_resized, y1_resized)
 
     def __len__(self):
