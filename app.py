@@ -11,12 +11,93 @@ import torchvision.transforms.functional as F
 import torch
 
 
-app = Flask(__name__)
 
 
-def allowed_file(filename):
+
+def create_app():
+    app = Flask(__name__)
+
+    UPLOAD_FOLDER = 'uploads'
+    PROCESSED_FOLDER = 'processed'
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+    app.category_map = get_category_map()
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
+    app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
+    app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    app.secret_key = 'super secret key'.encode('utf8')
+
+    app.model = fasterrcnn_resnet50_fpn(pretrained=True)
+    app.model.eval()
+    app.model.to(app.config['DEVICE'])
+
+
+    @app.route('/')
+    def index():
+        print('Request for index page received')
+        return render_template('index.html')
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                                   'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+    @app.route('/hello', methods=['POST'])
+    def hello():
+       name = request.form.get('name')
+       surname = request.form.get('surname')
+
+       if name:
+           print('Request for hello page received with name=%s' % name)
+           return render_template('hello.html', name = name, surname=surname)
+       else:
+           print('Request for hello page received with no name or blank name -- redirecting')
+           return redirect(url_for('index'))
+
+    @app.route('/upload', methods=['GET', 'POST'])
+    def upload_file():
+        if request.method == 'POST':
+            if 'myfile' not in request.files:
+                flash('No file part')
+                return redirect(url_for('index'))
+            file = request.files['myfile']
+            # If the user does not select a file, the browser submits an
+            # empty file without a filename.
+            if file.filename == '':
+                flash('No selected file')
+                return redirect(url_for('index'))
+            if file and allowed_file(file.filename, app.config['ALLOWED_EXTENSIONS']):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
+
+                img, boxes, labels = detect_in_image(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
+                bbox_image = show_bboxes(img, boxes, [app.category_map[l] for l in labels])
+                bbox_image.save(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
+                flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
+                print(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
+                return render_template('processed_img.html',
+                                        image = os.path.join(app.config['PROCESSED_FOLDER'], filename))
+
+
+    def detect_in_image(img_file, score_threshold=0.5):
+        print(img_file)
+        img = read_image(img_file)
+        img_to_device = img.to(app.config['DEVICE'])
+        preds = app.model([img_to_device/255])[0]
+        boxes = preds['boxes'][preds['scores'] > score_threshold]
+        labels = preds['labels'][preds['scores'] > score_threshold].tolist()
+        return img, boxes, labels
+
+    def show_bboxes(img, boxes, labels):
+        bbox_img = draw_bounding_boxes(img, boxes, labels, width=5)
+        img = bbox_img.detach()
+        img = F.to_pil_image(img)
+        return img
+    return app
+
+def allowed_file(filename, ALLOWED_EXTENSIONS):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_category_map():
     category_map = {
@@ -104,83 +185,6 @@ def get_category_map():
     return category_map
 
 
-
-@app.route('/')
-def index():
-    print('Request for index page received')
-    if not hasattr(app, 'category_map'):
-        UPLOAD_FOLDER = 'uploads'
-        PROCESSED_FOLDER = 'processed'
-        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-        app.category_map = get_category_map()
-        app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-        app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
-        app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
-        app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        app.secret_key = 'super secret key'.encode('utf8')
-
-        app.model = fasterrcnn_resnet50_fpn(pretrained=True)
-        app.model.eval()
-        app.model.to(app.config['DEVICE'])
-    return render_template('index.html')
-
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-@app.route('/hello', methods=['POST'])
-def hello():
-   name = request.form.get('name')
-   surname = request.form.get('surname')
-
-   if name:
-       print('Request for hello page received with name=%s' % name)
-       return render_template('hello.html', name = name, surname=surname)
-   else:
-       print('Request for hello page received with no name or blank name -- redirecting')
-       return redirect(url_for('index'))
-
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        if 'myfile' not in request.files:
-            flash('No file part')
-            return redirect(url_for('index'))
-        file = request.files['myfile']
-        # If the user does not select a file, the browser submits an
-        # empty file without a filename.
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(url_for('index'))
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
-
-            img, boxes, labels = detect_in_image(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
-            bbox_image = show_bboxes(img, boxes, [app.category_map[l] for l in labels])
-            bbox_image.save(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
-            flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
-            print(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
-            return render_template('processed_img.html',
-                                    image = os.path.join(app.config['PROCESSED_FOLDER'], filename))
-
-
-def detect_in_image(img_file, score_threshold=0.5):
-    print(img_file)
-    img = read_image(img_file)
-    img_to_device = img.to(app.config['DEVICE'])
-    preds = app.model([img_to_device/255])[0]
-    boxes = preds['boxes'][preds['scores'] > score_threshold]
-    labels = preds['labels'][preds['scores'] > score_threshold].tolist()
-    return img, boxes, labels
-
-def show_bboxes(img, boxes, labels):
-    bbox_img = draw_bounding_boxes(img, boxes, labels, width=5)
-    img = bbox_img.detach()
-    img = F.to_pil_image(img)
-    return img
-
-
 if __name__ == '__main__':
+    app = create_app()
     app.run()
