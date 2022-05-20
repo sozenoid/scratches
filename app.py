@@ -181,5 +181,5 @@ def get_category_map():
     return category_map
 
 if __name__ == '__main__':
-    app = create_app(port=80)
+    app = create_app()
     app.run()
