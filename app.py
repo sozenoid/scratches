@@ -183,7 +183,6 @@ def get_category_map():
     }
     return category_map
 
-
 app = create_app()
 
 if __name__ == '__main__':
