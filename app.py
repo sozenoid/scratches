@@ -8,7 +8,7 @@ from torchvision.models.detection.faster_rcnn import fasterrcnn_resnet50_fpn
 from torchvision.io import read_image
 from torchvision.utils import draw_bounding_boxes
 import torchvision.transforms.functional as F
-import torch
+# import torch
 
 def create_app():
     UPLOAD_FOLDER = 'uploads'
@@ -17,12 +17,13 @@ def create_app():
     app = Flask(__name__)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
-    app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     app.secret_key = 'super secret key'.encode('utf8')
 
     model = fasterrcnn_resnet50_fpn(pretrained=True)
     model.eval()
-    model.to(app.config['DEVICE'])
+    # model.to(app.config['DEVICE'])
     category_map = get_category_map()
 
     def allowed_file(filename):
@@ -79,8 +80,8 @@ def create_app():
     def detect_in_image(img_file, score_threshold=0.5):
         print(img_file)
         img = read_image(img_file)
-        img_to_device = img.to(app.config['DEVICE'])
-        preds = model([img_to_device/255])[0]
+        # img_to_device = img.to(app.config['DEVICE'])
+        preds = model([img/255])[0]
         boxes = preds['boxes'][preds['scores'] > score_threshold]
         labels = preds['labels'][preds['scores'] > score_threshold].tolist()
         return img, boxes, labels
