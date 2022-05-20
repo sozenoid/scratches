@@ -10,22 +10,13 @@ from torchvision.utils import draw_bounding_boxes
 import torchvision.transforms.functional as F
 import torch
 
-UPLOAD_FOLDER = 'uploads'
-PROCESSED_FOLDER = 'processed'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
-app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-app.secret_key = 'super secret key'.encode('utf8')
 
-model = fasterrcnn_resnet50_fpn(pretrained=True)
-model.eval()
-model.to(app.config['DEVICE'])
+app = Flask(__name__)
+
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def get_category_map():
     category_map = {
@@ -112,13 +103,26 @@ def get_category_map():
     }
     return category_map
 
-category_map = get_category_map()
 
 
 @app.route('/')
 def index():
-   print('Request for index page received')
-   return render_template('index.html')
+    print('Request for index page received')
+    if not hasattr(app, 'category_map'):
+        UPLOAD_FOLDER = 'uploads'
+        PROCESSED_FOLDER = 'processed'
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+        app.category_map = get_category_map()
+        app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+        app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
+        app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
+        app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        app.secret_key = 'super secret key'.encode('utf8')
+
+        app.model = fasterrcnn_resnet50_fpn(pretrained=True)
+        app.model.eval()
+        app.model.to(app.config['DEVICE'])
+    return render_template('index.html')
 
 @app.route('/favicon.ico')
 def favicon():
@@ -154,9 +158,9 @@ def upload_file():
             file.save(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
 
             img, boxes, labels = detect_in_image(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
-            bbox_image = show_bboxes(img, boxes, [category_map[l] for l in labels])
+            bbox_image = show_bboxes(img, boxes, [app.category_map[l] for l in labels])
             bbox_image.save(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
-            flash(f"File {filename} has been processed, detected {' '.join([category_map[l] for l in labels])}")
+            flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
             print(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
             return render_template('processed_img.html',
                                     image = os.path.join(app.config['PROCESSED_FOLDER'], filename))
@@ -166,7 +170,7 @@ def detect_in_image(img_file, score_threshold=0.5):
     print(img_file)
     img = read_image(img_file)
     img_to_device = img.to(app.config['DEVICE'])
-    preds = model([img_to_device/255])[0]
+    preds = app.model([img_to_device/255])[0]
     boxes = preds['boxes'][preds['scores'] > score_threshold]
     labels = preds['labels'][preds['scores'] > score_threshold].tolist()
     return img, boxes, labels
