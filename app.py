@@ -9,6 +9,7 @@ from torchvision.io import read_image
 from torchvision.utils import draw_bounding_boxes
 import torchvision.transforms.functional as F
 import torch
+
 def create_app():
     UPLOAD_FOLDER = 'uploads'
     PROCESSED_FOLDER = 'processed'
@@ -64,9 +65,9 @@ def create_app():
                 return redirect(url_for('index'))
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                file.save(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
 
-                img, boxes, labels = detect_in_image(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                img, boxes, labels = detect_in_image(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
                 bbox_image = show_bboxes(img, boxes, [category_map[l] for l in labels])
                 bbox_image.save(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
                 flash(f"File {filename} has been processed, detected {' '.join([category_map[l] for l in labels])}")
@@ -76,6 +77,7 @@ def create_app():
 
 
     def detect_in_image(img_file, score_threshold=0.5):
+        print(img_file)
         img = read_image(img_file)
         img_to_device = img.to(app.config['DEVICE'])
         preds = model([img_to_device/255])[0]
