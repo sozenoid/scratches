@@ -1,3 +1,0 @@
-PlatformWithVersion=Python 3.9.7
-BuildCommands=/tmp/oryx/platforms/python/3.9.7/bin/python3.9 -m venv antenv --copies --system-site-packages
-python -m pip install --cache-dir /usr/local/share/pip-cache --prefer-binary -r requirements.txt | ts [%T%z]
