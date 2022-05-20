@@ -16,7 +16,6 @@ import torch
 
 def create_app():
     app = Flask(__name__)
-
     UPLOAD_FOLDER = 'uploads'
     PROCESSED_FOLDER = 'processed'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -185,6 +184,7 @@ def get_category_map():
     return category_map
 
 
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run()
