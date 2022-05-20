@@ -10,11 +10,13 @@ from torchvision.utils import draw_bounding_boxes
 import torchvision.transforms.functional as F
 import torch
 
+app = Flask(__name__)
+
 def create_app():
     UPLOAD_FOLDER = 'uploads'
     PROCESSED_FOLDER = 'processed'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-    app = Flask(__name__)
+
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
     app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
