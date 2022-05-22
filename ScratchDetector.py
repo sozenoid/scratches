@@ -75,6 +75,7 @@ class FasterRCNN(LightningModule):
         self.num_classes = num_classes
         # self.backbone = backbone
         # if backbone is None:
+        self.best_avg_iou = -1
         self.model = fasterrcnn_resnet50_fpn(
             pretrained=pretrained,
             pretrained_backbone=pretrained_backbone,
@@ -131,6 +132,9 @@ class FasterRCNN(LightningModule):
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
         logs = {"val_iou": avg_iou}
         self.log("val/avg_iou", avg_iou)
+        if avg_iou > self.best_avg_iou:
+            self.best_avg_iou = avg_iou
+            torch.save(self.model, 'best_iou.pt')
         return {"avg_val_iou": avg_iou, "log": logs}
 
     def configure_optimizers(self):
@@ -183,7 +187,7 @@ def test():
 
     dm = ScratchDataModule()
     model = FasterRCNN(pretrained=True, num_classes=2)
-    trainer = Trainer(accelerator='gpu', max_epochs=50,  logger=wandb_logger)
+    trainer = Trainer(accelerator='gpu', max_epochs=200,  logger=wandb_logger)
     trainer.fit(model, datamodule=dm)
 
     torch.save(model, 'eot.pt')
@@ -193,8 +197,8 @@ def test():
         im, target = batch
         preds = model([im])
         print(preds)
-
-        img_resized_bboxed = dm.scratch_val.draw_bboxes(im, preds[0]['boxes'].tolist())
+        boxes =  preds[0]['boxes'][preds[0]['scores']>0.5]
+        img_resized_bboxed = dm.scratch_val.draw_bboxes(im, boxes.tolist())
         plt.imshow(img_resized_bboxed.permute(1, 2, 0))
         plt.show()
 
