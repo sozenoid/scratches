@@ -25,7 +25,6 @@ class ScratchDataset(Dataset):
                             transforms.ToPILImage(),
                             SquarePad(),
                             transforms.Resize(self.img_size),
-                            #transforms.RandomHorizontalFlip(),
                             transforms.ColorJitter(brightness=.5, hue=.3),
                             transforms.RandomEqualize(),
                             transforms.ToTensor()])
@@ -112,7 +111,7 @@ class ScratchDataset(Dataset):
         Xi = self.transform(img)
         img_resized_bboxes = [self.resize_bbox(bbox, original_img_size, self.img_size, square_padded=True) for bbox in bboxes]
         boxes = torch.as_tensor(img_resized_bboxes, dtype=torch.float32)
-        labels = [0]*len(img_resized_bboxes)
+        labels = [1]*len(img_resized_bboxes)
         labels = torch.as_tensor(labels, dtype=torch.int64)
         # yi = self.transform(mask)
 

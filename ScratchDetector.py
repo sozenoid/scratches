@@ -112,11 +112,12 @@ class FasterRCNN(LightningModule):
 
         images, targets = batch
 
-        # targets = [{k: v for k, v in t.items()} for t in targets]
+        targets = [{k: v for k, v in t.items()} for t in targets]
 
         # fasterrcnn takes both images and targets for training, returns
         loss_dict = self.model(images, targets)
         loss = sum(loss for loss in loss_dict.values())
+        self.log("train/loss", loss)
         return {"loss": loss, "log": loss_dict}
 
     def validation_step(self, batch, batch_idx):
@@ -129,6 +130,7 @@ class FasterRCNN(LightningModule):
     def validation_epoch_end(self, outs):
         avg_iou = torch.stack([o["val_iou"] for o in outs]).mean()
         logs = {"val_iou": avg_iou}
+        self.log("val/avg_iou", avg_iou)
         return {"avg_val_iou": avg_iou, "log": logs}
 
     def configure_optimizers(self):
@@ -173,13 +175,33 @@ def run_cli():
 def test():
     seed_everything(42)
     from ScratchDatamodule import ScratchDataModule
+    import matplotlib.pyplot as plt
+
+    from pytorch_lightning.loggers import WandbLogger
+
+    wandb_logger = WandbLogger(project="ScratchDetector")
 
     dm = ScratchDataModule()
-    model = FasterRCNN(pretrained=True, num_classes=1)
-    trainer = Trainer(accelerator='gpu', max_steps=50)
-
+    model = FasterRCNN(pretrained=True, num_classes=2)
+    trainer = Trainer(accelerator='gpu', max_epochs=50,  logger=wandb_logger)
     trainer.fit(model, datamodule=dm)
 
+    torch.save(model, 'eot.pt')
+    model = torch.load('eot.pt')
+    model.eval()
+    for batch in dm.scratch_val:
+        im, target = batch
+        preds = model([im])
+        print(preds)
+
+        img_resized_bboxed = dm.scratch_val.draw_bboxes(im, preds[0]['boxes'].tolist())
+        plt.imshow(img_resized_bboxed.permute(1, 2, 0))
+        plt.show()
+
+        img_control = dm.scratch_val.draw_bboxes(im, target['boxes'].tolist())
+        plt.imshow(img_control.permute(1, 2, 0))
+        plt.show()
+    # trainer.predict(model, datamodule=dm)
     # print(model.num_classes)
     # man_walks_dog = read_image('/home/macenrola/Hug_2Tb/DamageDetection/istockphoto-1202541241-612x612.jpg')
     # model.eval()
