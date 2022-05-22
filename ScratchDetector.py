@@ -81,8 +81,8 @@ class FasterRCNN(LightningModule):
             trainable_backbone_layers=trainable_backbone_layers,
         )
 
-        # in_features = self.model.roi_heads.box_predictor.cls_score.in_features
-        # self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, self.num_classes)
+        in_features = self.model.roi_heads.box_predictor.cls_score.in_features
+        self.model.roi_heads.box_predictor = FastRCNNPredictor(in_features, self.num_classes)
 
         # else:
         #     if isinstance(self.backbone, torch.nn.Module):
@@ -111,7 +111,8 @@ class FasterRCNN(LightningModule):
     def training_step(self, batch, batch_idx):
 
         images, targets = batch
-        targets = [{k: v for k, v in t.items()} for t in targets]
+
+        # targets = [{k: v for k, v in t.items()} for t in targets]
 
         # fasterrcnn takes both images and targets for training, returns
         loss_dict = self.model(images, targets)
@@ -171,12 +172,18 @@ def run_cli():
 
 def test():
     seed_everything(42)
+    from ScratchDatamodule import ScratchDataModule
 
-    model = FasterRCNN(pretrained=True)
-    print(model.num_classes)
-    man_walks_dog = read_image('/home/macenrola/Hug_2Tb/DamageDetection/istockphoto-1202541241-612x612.jpg')
-    model.eval()
-    predictions = model.model([man_walks_dog/255])
-    print(predictions)
+    dm = ScratchDataModule()
+    model = FasterRCNN(pretrained=True, num_classes=1)
+    trainer = Trainer(accelerator='gpu', max_steps=50)
+
+    trainer.fit(model, datamodule=dm)
+
+    # print(model.num_classes)
+    # man_walks_dog = read_image('/home/macenrola/Hug_2Tb/DamageDetection/istockphoto-1202541241-612x612.jpg')
+    # model.eval()
+    # predictions = model.model([man_walks_dog/255])
+    # print(predictions)
 if __name__ == "__main__":
     test()

@@ -9,7 +9,7 @@ import torchvision.transforms.functional as F
 from torchvision.io import read_image, ImageReadMode
 
 class ScratchDataset(Dataset):
-    def __init__(self, dir = '/home/macenrola/Hug_2Tb/DamageDetection/carScratchDetector', size=(224,224)):
+    def __init__(self, dir = '/home/macenrola/Hug_2Tb/DamageDetection/carScratchDetector/train', size=(224,224)):
         """
         Args:
             *shapes: list of shapes
@@ -17,8 +17,8 @@ class ScratchDataset(Dataset):
         """
         super().__init__()
         self.img_size = size
-        self.images = glob.glob(f'{dir}/train/image*')
-        self.annotation_file = glob.glob(f'{dir}/train/*json')[0]
+        self.images = glob.glob(f'{dir}/image*')
+        self.annotation_file = glob.glob(f'{dir}/*json')[0]
         print(self.annotation_file)
         self.annotations = self.load_annotations()
         self.transform   = transforms.Compose([
@@ -26,7 +26,10 @@ class ScratchDataset(Dataset):
                             SquarePad(),
                             transforms.Resize(self.img_size),
                             #transforms.RandomHorizontalFlip(),
+                            transforms.ColorJitter(brightness=.5, hue=.3),
+                            transforms.RandomEqualize(),
                             transforms.ToTensor()])
+
         self.reading_mode = ImageReadMode(ImageReadMode.RGB)
 
     def load_annotations(self):
@@ -107,10 +110,13 @@ class ScratchDataset(Dataset):
 
 
         Xi = self.transform(img)
-        img_resized_bboxed = self.draw_bboxes(Xi, [self.resize_bbox(bbox, original_img_size, self.img_size, square_padded=True) for bbox in bboxes])
+        img_resized_bboxes = [self.resize_bbox(bbox, original_img_size, self.img_size, square_padded=True) for bbox in bboxes]
+        boxes = torch.as_tensor(img_resized_bboxes, dtype=torch.float32)
+        labels = [0]*len(img_resized_bboxes)
+        labels = torch.as_tensor(labels, dtype=torch.int64)
         # yi = self.transform(mask)
 
-        return img_bbox, img_resized_bboxed
+        return Xi, {'boxes':boxes, 'labels':labels}
 
 class SquarePad:
     def __call__(self, image):
@@ -123,14 +129,15 @@ class SquarePad:
 
 def main():
     import matplotlib.pyplot as plt
-
-    scratch_ds = ScratchDataset()
+    scratch_ds = ScratchDataset( dir = '/home/macenrola/Hug_2Tb/DamageDetection/carScratchDetector/train')
     for scratch in scratch_ds:
         Xi, yi = scratch
+        print(Xi, yi)
         plt.imshow(Xi.permute(1, 2, 0))
         plt.show()
 
-        plt.imshow(yi.permute(1, 2, 0))
+        img_resized_bboxed = scratch_ds.draw_bboxes(Xi, yi['boxes'].tolist())
+        plt.imshow(img_resized_bboxed.permute(1, 2, 0))
         plt.show()
 
 if __name__ == "__main__":
