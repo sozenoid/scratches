@@ -13,10 +13,24 @@
             <h1 class="display-6 fw-bold text-primary">Welcome to the ScratchDetector</h1>
           </div>
 
+      <div class="px-4 py-3 my-2 text-center">
+        <p>Detect scratches on car paint and parts! The model is based on Faster-RCNN with a ResNet-50 backbone.</p>
+      </div>
 
-        <form method="post" action="{{url_for('upload_file')}}" enctype = "multipart/form-data">>
+      <div class="px-4 py-3 my-2 text-center">
+        <table style="margin-left:auto;margin-right:auto;">
+          <tr>
+            <td><img src="{{ url_for('static', filename='images/image80.jpg') }}" alt="pre detection of scratches" width="192" height="192"></td>
+            <td><img src="{{ url_for('static', filename='images/Arrow_east.svg.png') }}" alt="pre detection of scratches" width="50"></td>
+            <td><img src="{{ url_for('static', filename='images/processed_80.jpg') }}" alt="car with the scratches highlighted" width="192" height="192"></td>
+          </tr>
+        </table>
+      </div>
+
+
+        <form method="post" action="{{url_for('upload_file')}}" enctype = "multipart/form-data">
             <div class="col-md-6 mx-auto text-center">
-                <label for="name" class="form-label fw-bold fs-5">Pick an image to identify</label>
+                <label for="name" class="form-label fw-bold fs-5">Pick a car image to scan for scratches</label>
                 <div class="d-grid gap-2 d-sm-flex justify-content-sm-center align-items-center my-1">
                   <input type="file" class="form-control" id="myfile" name="myfile"><br><br>
                   </div>

@@ -76,10 +76,12 @@ def create_app():
                 flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
                 print(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
                 return render_template('processed_img.html',
-                                        image = os.path.join(app.config['PROCESSED_FOLDER'], filename))
+                                        post_image = os.path.join(app.config['PROCESSED_FOLDER'], filename),
+                                        pre_image = os.path.join(app.config['UPLOAD_FOLDER'], filename),
+                                        image_name=filename)
 
 
-    def detect_in_image(img_file, score_threshold=0.5):
+    def detect_in_image(img_file, score_threshold=0.7):
         print(img_file)
         img = read_image(img_file)
         img_to_device = img.to(app.config['DEVICE'])

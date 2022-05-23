@@ -2,18 +2,29 @@
 <head>
     <title>Hello Azure - Python Quickstart</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/Font_Awesome_5_solid_car-crash.svg') }}">
 </head>
 <html>
    <body>
      <main>
         <div class="px-4 py-3 my-2 text-center">
-            <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/azure-icon.svg') }}" alt="Azure Logo" width="192" height="192"/>
+            <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/Font_Awesome_5_solid_car-crash.svg') }}" alt="car crash logo" width="192" height="192"/>
             <!-- <img  src="/docs/5.1/assets/brand/bootstrap-logo.svg" alt="" width="72" height="57"> -->
-            <h1 class="display-6 fw-bold">These are the detections for {{ image }}</h1>
-            <img src="{{ url_for('static', filename= image) }}" alt="Italian Trulli">
-            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4 gap-3">Back home</a>
-          </div>
+            <h1 class="display-6 fw-bold">These are the detections for {{ image_name }}</h1>
+        </div>
+        <div class="px-4 py-3 my-2 text-center">
+          <table style="margin-left:auto;margin-right:auto;">
+            <tr>
+              <td><img src="{{ url_for('static', filename= pre_image) }}" alt="pre detection of scratches"></td>
+              <td><img src="{{ url_for('static', filename='images/Arrow_east.svg.png') }}" alt="pre detection of scratches" width="50"></td>
+              <td><img src="{{ url_for('static', filename= post_image) }}" alt="car with the scratches highlighted"></td>
+            </tr>
+          </table>
+        </div>
+
+              <div class="d-grid gap-2 d-sm-flex justify-content-sm-center my-2">
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4 gap-3">Detect again</a>
+              </div>
      </main>
    </body>
 </html>
