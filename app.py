@@ -11,7 +11,7 @@ import torchvision.transforms.functional as F
 import torch
 
 
-
+from ScratchDetector import FasterRCNN
 
 
 def create_app():
@@ -19,14 +19,15 @@ def create_app():
     UPLOAD_FOLDER = 'uploads'
     PROCESSED_FOLDER = 'processed'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-    app.category_map = get_category_map()
+    app.category_map = get_scratch_map()
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
     app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
     app.config['DEVICE'] = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     app.secret_key = 'super secret key'.encode('utf8')
 
-    app.model = fasterrcnn_resnet50_fpn(pretrained=True)
+    # app.model = fasterrcnn_resnet50_fpn(pretrained=True)
+    app.model = torch.load('best_iou.pt')
     app.model.eval()
     app.model.to(app.config['DEVICE'])
 
@@ -97,6 +98,10 @@ def create_app():
 def allowed_file(filename, ALLOWED_EXTENSIONS):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def get_scratch_map():
+    return {1:'scratch'}
 
 def get_category_map():
     category_map = {
