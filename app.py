@@ -73,7 +73,8 @@ def create_app():
                 img, boxes, labels = detect_in_image(os.path.join('static', app.config['UPLOAD_FOLDER'], filename))
                 bbox_image = show_bboxes(img, boxes, [app.category_map[l] for l in labels])
                 bbox_image.save(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
-                flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
+                # flash(f"File {filename} has been processed, detected {' '.join([app.category_map[l] for l in labels])}")
+                flash(f"File {filename} has been processed, detected {len(labels)} scratch"+'es' if len(labels)>1 else '')
                 print(os.path.join('static', app.config['PROCESSED_FOLDER'], filename))
                 return render_template('processed_img.html',
                                         post_image = os.path.join(app.config['PROCESSED_FOLDER'], filename),
