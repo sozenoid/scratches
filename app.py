@@ -27,7 +27,7 @@ def create_app():
     app.secret_key = 'super secret key'.encode('utf8')
 
     # app.model = fasterrcnn_resnet50_fpn(pretrained=True)
-    app.model = torch.load('best_iou.pt')
+    app.model = torch.load('best_iou.pt', map_location=app.config['DEVICE'])
     app.model.eval()
     app.model.to(app.config['DEVICE'])
 
