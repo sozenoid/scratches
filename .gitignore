@@ -1,4 +1,3 @@
 __pycache__/
-*png 
-*jpg 
-*jpeg
+static/uploads/*
+static/processed/*
